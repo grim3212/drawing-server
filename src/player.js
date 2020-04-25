@@ -9,6 +9,7 @@ function setupPlayer(opts) {
 
   if (validatePlayer(opts)) {
     setupListeners(opts)
+    notifyPlayer(opts)
   }
 }
 
@@ -140,6 +141,10 @@ function setupListeners({ socket }) {
       `Player disconnected from room [${socket.connectionSettings.room}]`
     )
   })
+}
+
+function notifyPlayer({ socket }) {
+  socket.emit('joined')
 }
 
 module.exports = {

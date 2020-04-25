@@ -21,6 +21,7 @@ function setupController(opts) {
     debug(`[${socket.id}]`, `Controller joined room '${newRoomId}'`)
 
     setupListeners(opts)
+    notifyController(opts)
   } else {
     kickController(socket, 'roomAlreadyExists')
   }
@@ -63,6 +64,10 @@ function setupListeners({ io, socket }) {
       }
     }
   })
+}
+
+function notifyController({ socket }) {
+  socket.emit('created')
 }
 
 module.exports = {
