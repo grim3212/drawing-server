@@ -1,15 +1,22 @@
 const debug = require('debug')('drawing:controller')
+const { defaultGameState } = require('./util')
 
 function setupController(opts) {
-  const { io, socket } = opts
+  const { io, socket, query } = opts
   const newRoomId = generateRoomID()
   debug(`[${socket.id}]`, `Controller trying to create room [${newRoomId}]`)
 
   if (!io.sockets.adapter.rooms[newRoomId]) {
+    // Setup socket props
     socket.connectionSettings = {
       room: newRoomId,
       isPlayer: false
     }
+    // Controll the rules and other aspects of the game
+    socket.gameSettings = query.gameSettings
+    // Handles the running game state and is the main source of truth for the clients
+    socket.gameState = defaultGameState()
+
     socket.join(newRoomId)
     debug(`[${socket.id}]`, `Controller joined room '${newRoomId}'`)
 

@@ -60,7 +60,7 @@ function checkForRoom(opts) {
 
   if (controller) {
     debug(`[${socket.id}]`, `Found controller for room [${query.roomCode}]`)
-    if (controller.gameState.inProgress) {
+    if (controller.gameState.state === 'STARTING') {
       debug(
         `[${socket.id}]`,
         `Game already in progress for room [${query.roomCode}]`
@@ -122,10 +122,7 @@ function kickPlayer(socket, reason) {
 }
 
 function joinRoom({ socket, query }) {
-  debug(
-    `[${socket.id}]`,
-    `Player joining '${query.username}:${query.roomCode}'`
-  )
+  debug(`[${socket.id}]`, `Player joined '${query.username}:${query.roomCode}'`)
 
   socket.connectionSettings = {
     username: query.username,
@@ -136,9 +133,12 @@ function joinRoom({ socket, query }) {
   socket.join(query.roomCode)
 }
 
-function setupListeners(socket) {
+function setupListeners({ socket }) {
   socket.on('disconnect', () => {
-    debug(`[${socket.id}]`, `Player disconnected from room [${socket}]`)
+    debug(
+      `[${socket.id}]`,
+      `Player disconnected from room [${socket.connectionSettings.room}]`
+    )
   })
 }
 
