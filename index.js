@@ -1,3 +1,4 @@
+const debug = require('debug')('drawing:base')
 const express = require('express')
 const fs = require('fs')
 const { setupPlayer } = require('./src/player')
@@ -35,11 +36,15 @@ server.listen(5052, () => {
 })
 
 io.on('connection', (socket) => {
-  var query = socket.handshake.query
+  var query = JSON.parse(socket.handshake.query.handshake)
 
   if (query.isPlayer) {
     setupPlayer({ io, socket, query })
-  } else {
+  } else if (!query.isPlayer) {
     setupController({ io, socket, query })
+  } else {
+    debug(`[${socket.id}]`, `Socket failed connection handshake`)
+    socket.emit('kicked', { reason: 'failedHandshake' })
+    socket.disconnect(true)
   }
 })

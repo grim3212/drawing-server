@@ -6,10 +6,14 @@ function setupController(opts) {
   debug(`[${socket.id}]`, `Controller trying to create room [${newRoomId}]`)
 
   if (!io.sockets.adapter.rooms[newRoomId]) {
+    socket.connectionSettings = {
+      room: newRoomId,
+      isPlayer: false
+    }
     socket.join(newRoomId)
-    setupListeners(socket)
+    debug(`[${socket.id}]`, `Controller joined room '${newRoomId}'`)
 
-    debug(`[${socket.id}]`, `Controller created room '${newRoomId}'`)
+    setupListeners(opts)
   } else {
     kickController(socket, 'roomAlreadyExists')
   }
@@ -35,9 +39,12 @@ function kickController({ socket, reason }) {
 
 function setupListeners({ io, socket }) {
   socket.on('disconnect', () => {
-    debug(`[${socket.id}]`, `Controller disconnected from room [${socket}]`)
+    debug(
+      `[${socket.id}]`,
+      `Controller disconnected from room [${socket.connectionSettings.room}]`
+    )
 
-    var players = io.sockets.adapter.rooms[socket.settings.roomId]
+    var players = io.sockets.adapter.rooms[socket.connectionSettings.room]
 
     if (players) {
       //Kick each player

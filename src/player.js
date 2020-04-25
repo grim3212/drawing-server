@@ -15,12 +15,7 @@ function setupPlayer(opts) {
 function validatePlayer(opts) {
   //Get the options we need
   const { socket, query } = opts
-  if (
-    !query.roomCode ||
-    query.roomCode === '0' ||
-    query.roomCode === 'null' ||
-    query.roomCode.length < 4
-  ) {
+  if (!query.roomCode || query.roomCode.length < 4) {
     kickPlayer(socket, 'invalidRoomCode')
     return false
   } else if (!query.username || query.username.length < 3) {
@@ -56,10 +51,10 @@ function checkForRoom(opts) {
   for (const pSocketId in players) {
     const playerSocket = io.sockets.connected[pSocketId]
 
-    if (playerSocket.controller) {
+    if (!playerSocket.connectionSettings.isPlayer) {
       controller = playerSocket
     } else {
-      usernames.push(playerSocket.player.username)
+      usernames.push(playerSocket.connectionSettings.username)
     }
   }
 
@@ -132,6 +127,11 @@ function joinRoom({ socket, query }) {
     `Player joining '${query.username}:${query.roomCode}'`
   )
 
+  socket.connectionSettings = {
+    username: query.username,
+    room: query.roomCode,
+    isPlayer: true
+  }
   //Join the room
   socket.join(query.roomCode)
 }
