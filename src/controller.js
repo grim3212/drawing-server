@@ -1,5 +1,5 @@
 const debug = require('debug')('drawing:controller')
-const { defaultGameState } = require('./util')
+const Controller = require('./data/controller')
 
 function setupController(opts) {
   const { io, socket, query } = opts
@@ -7,15 +7,13 @@ function setupController(opts) {
   debug(`[${socket.id}]`, `Controller trying to create room [${newRoomId}]`)
 
   if (!io.sockets.adapter.rooms[newRoomId]) {
-    // Setup socket props
-    socket.connectionSettings = {
+    //Set the socket up as a controller
+    socket.controller = new Controller({
+      io,
+      id: socket.id,
       room: newRoomId,
-      isPlayer: false
-    }
-    // Controll the rules and other aspects of the game
-    socket.gameSettings = query.gameSettings
-    // Handles the running game state and is the main source of truth for the clients
-    socket.gameState = defaultGameState()
+      query
+    })
 
     socket.join(newRoomId)
     debug(`[${socket.id}]`, `Controller joined room '${newRoomId}'`)
@@ -49,10 +47,10 @@ function setupListeners({ io, socket }) {
   socket.on('disconnect', () => {
     debug(
       `[${socket.id}]`,
-      `Controller disconnected from room [${socket.connectionSettings.room}]`
+      `Controller disconnected from room [${socket.controller.getRoom()}]`
     )
 
-    var players = io.sockets.adapter.rooms[socket.connectionSettings.room]
+    var players = io.sockets.adapter.rooms[socket.controller.getRoom()]
 
     if (players) {
       //Kick each player
@@ -64,10 +62,16 @@ function setupListeners({ io, socket }) {
       }
     }
   })
+  socket.on('server_playerJoined', ({ username }) => {
+    debug(`[${socket.id}]`, `Player joined [${username}]`)
+  })
+  socket.on('server_playerLeft', ({ username }) => {
+    debug(`[${socket.id}]`, `Player left [${username}]`)
+  })
 }
 
 function notifyController({ socket }) {
-  socket.emit('created')
+  socket.emit('created', { room: socket.controller.getRoom() })
 }
 
 module.exports = {

@@ -1,4 +1,5 @@
 const debug = require('debug')('drawing:player')
+const Player = require('./data/player')
 
 function setupPlayer(opts) {
   const { socket, query } = opts
@@ -52,10 +53,10 @@ function checkForRoom(opts) {
   for (const pSocketId in players) {
     const playerSocket = io.sockets.connected[pSocketId]
 
-    if (!playerSocket.connectionSettings.isPlayer) {
-      controller = playerSocket
+    if (playerSocket.controller) {
+      controller = playerSocket.controller
     } else {
-      usernames.push(playerSocket.connectionSettings.username)
+      usernames.push(playerSocket.player.getUsername())
     }
   }
 
@@ -74,7 +75,7 @@ function checkForRoom(opts) {
 
         if (numPlayers < controller.gameSettings.maxPlayers) {
           if (checkUniqueUsername({ usernames, username: query.username })) {
-            joinRoom(opts)
+            joinRoom(opts, controller)
             return true
           } else {
             debug(
@@ -87,7 +88,7 @@ function checkForRoom(opts) {
         }
       } else {
         if (checkUniqueUsername({ usernames, username: query.username })) {
-          joinRoom(opts)
+          joinRoom(opts, controller)
           return true
         } else {
           debug(`[${socket.id}]`, `Username is not unique [${query.username}]`)
@@ -122,24 +123,31 @@ function kickPlayer(socket, reason) {
   socket.disconnect(true)
 }
 
-function joinRoom({ socket, query }) {
+function joinRoom({ io, socket, query }, controller) {
   debug(`[${socket.id}]`, `Player joined '${query.username}:${query.roomCode}'`)
 
-  socket.connectionSettings = {
-    username: query.username,
-    room: query.roomCode,
-    isPlayer: true
-  }
+  socket.player = new Player({
+    io,
+    id: socket.id,
+    query,
+    controller: controller.getId()
+  })
+
   //Join the room
   socket.join(query.roomCode)
+
+  // Notify the controller that the player joined
+  socket.player.getController().playerJoined({ player: socket.player })
 }
 
 function setupListeners({ socket }) {
   socket.on('disconnect', () => {
     debug(
       `[${socket.id}]`,
-      `Player disconnected from room [${socket.connectionSettings.room}]`
+      `Player disconnected from room [${socket.player.getRoom()}]`
     )
+    // Notify the controller that the player left
+    socket.player.getController().playerLeft({ id: socket.id })
   })
 }
 
