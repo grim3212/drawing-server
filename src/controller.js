@@ -62,12 +62,6 @@ function setupListeners({ io, socket }) {
       }
     }
   })
-  socket.on('server_playerJoined', ({ username }) => {
-    debug(`[${socket.id}]`, `Player joined [${username}]`)
-  })
-  socket.on('server_playerLeft', ({ username }) => {
-    debug(`[${socket.id}]`, `Player left [${username}]`)
-  })
 }
 
 function notifyController({ socket }) {
