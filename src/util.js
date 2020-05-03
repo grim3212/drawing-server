@@ -1,7 +1,9 @@
 function defaultGameState() {
   return {
     state: 'STARTUP',
-    players: []
+    players: [],
+    timer: 60,
+    currentRound: 1
   }
 }
 

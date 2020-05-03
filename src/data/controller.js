@@ -12,6 +12,8 @@ class Controller {
     this.gameSettings = query.gameSettings
     // Handles the running game state and is the main source of truth for the clients
     this.gameState = defaultGameState()
+    // Used for stopping and starting the timeout for the timer
+    this.timeout = 0
   }
 
   selfSocket() {
@@ -43,6 +45,19 @@ class Controller {
     this.selfSocket().emit('playerLeft', { id })
   }
 
+  emitToEveryone(event, data) {
+    // Send the event to the controller
+    this.selfSocket().emit(event, data)
+
+    // Send the event to all of the players
+    if (this.gameState.players && this.gameState.players.length > 0) {
+      for (const player of this.gameState.players) {
+        var playerSocket = this.io.sockets.connected[player.id]
+        playerSocket.emit(event, data)
+      }
+    }
+  }
+
   startGame() {
     this.gameState.state = 'PLAYING'
     this.selfSocket().emit('gameStarted')
@@ -53,6 +68,8 @@ class Controller {
         playerSocket.emit('gameStarted')
       }
     }
+
+    this.startTimer()
   }
 
   playerDrawing(data) {
@@ -69,6 +86,42 @@ class Controller {
         if (player.id !== data.player.id) {
           var playerSocket = this.io.sockets.connected[player.id]
           playerSocket.emit('newGuess', data)
+        }
+      }
+    }
+  }
+
+  startTimer() {
+    this.timeout = setTimeout(this.timerUpdate, 1000)
+  }
+
+  stopTimer() {
+    if (this.timeout) clearTimeout(this.timeout)
+    this.timeout = 0
+  }
+
+  timerUpdate() {
+    if (!(this.gameState.timer < 0)) {
+      this.emitToEveryone('timerUpdate', { time: this.gameState.timer })
+      // Decrement timer
+      this.gameState.timer -= 1
+    } else {
+      if (this.gameState.state === 'PLAYING') {
+        this.gameState.state = 'ROUNDEND'
+        this.gameState.timer = 15
+        this.emitToEveryone('roundEnd', { time: this.gameState.timer })
+      } else if (this.gameState.state === 'ROUNDEND') {
+        if (this.gameState.currentRound >= this.gameSettings.rounds) {
+          this.gameState.state = 'GAMEEND'
+          this.emitToEveryone('gameEnd')
+        } else {
+          this.gameState.state = 'PLAYING'
+          this.gameState.timer = 60
+          this.gameState.currentRound += 1
+          this.emitToEveryone('nextRound', {
+            time: this.gameState.timer,
+            round: this.gameState.currentRound
+          })
         }
       }
     }
