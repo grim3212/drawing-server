@@ -30,6 +30,11 @@ if (is_production) {
   io = require('socket.io')(server)
 }
 
+// Used for server health check
+app.get('/api', (req, res) => {
+  res.send(true)
+})
+
 // Initialize our websocket server on port 5052
 server.listen(5052, () => {
   console.log('started on port 5052')

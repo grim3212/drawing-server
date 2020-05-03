@@ -146,13 +146,25 @@ function setupListeners({ socket }) {
       `[${socket.id}]`,
       `Player disconnected from room [${socket.player.getRoom()}]`
     )
-    // Notify the controller that the player left
-    socket.player.getController().playerLeft({ id: socket.id })
+    const controller = socket.player.getController()
+    if (controller) {
+      // Notify the controller that the player left
+      controller.playerLeft({ id: socket.id })
+    }
+  })
+
+  socket.on('drawing', (data) => {
+    socket.player.getController().playerDrawing(data)
+  })
+
+  socket.on('newGuess', (data) => {
+    debug(`[${socket.id}]`, `Player sent guess [${data.text}]`)
+    socket.player.getController().newGuess(data)
   })
 }
 
 function notifyPlayer({ socket }) {
-  socket.emit('joined')
+  socket.emit('joined', { id: socket.id })
 }
 
 module.exports = {

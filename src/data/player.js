@@ -27,7 +27,9 @@ class Player {
   }
 
   getController() {
-    return this.getControllerSocket().controller
+    return this.getControllerSocket()
+      ? this.getControllerSocket().controller
+      : null
   }
 
   getControllerSocket() {

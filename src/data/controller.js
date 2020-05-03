@@ -42,6 +42,37 @@ class Controller {
 
     this.selfSocket().emit('playerLeft', { id })
   }
+
+  startGame() {
+    this.gameState.state = 'PLAYING'
+    this.selfSocket().emit('gameStarted')
+
+    if (this.gameState.players && this.gameState.players.length > 0) {
+      for (const player of this.gameState.players) {
+        var playerSocket = this.io.sockets.connected[player.id]
+        playerSocket.emit('gameStarted')
+      }
+    }
+  }
+
+  playerDrawing(data) {
+    this.selfSocket().emit('drawing', data)
+  }
+
+  newGuess(data) {
+    // Send the new guess to the controller as well
+    this.selfSocket().emit('newGuess', data)
+
+    // Send the new guess to all players except the one who sent it
+    if (this.gameState.players && this.gameState.players.length > 0) {
+      for (const player of this.gameState.players) {
+        if (player.id !== data.player.id) {
+          var playerSocket = this.io.sockets.connected[player.id]
+          playerSocket.emit('newGuess', data)
+        }
+      }
+    }
+  }
 }
 
 module.exports = Controller

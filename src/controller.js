@@ -62,6 +62,15 @@ function setupListeners({ io, socket }) {
       }
     }
   })
+
+  socket.on('startGame', () => {
+    debug(
+      `[${socket.id}]`,
+      `Starting game in room [${socket.controller.getRoom()}]`
+    )
+
+    socket.controller.startGame()
+  })
 }
 
 function notifyController({ socket }) {
