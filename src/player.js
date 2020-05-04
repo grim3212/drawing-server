@@ -161,6 +161,11 @@ function setupListeners({ socket }) {
     debug(`[${socket.id}]`, `Player sent guess [${data.text}]`)
     socket.player.getController().newGuess(data)
   })
+
+  socket.on('promptChosen', (data) => {
+    debug(`[${socket.id}]`, `Drawer chose prompt [${data.prompt}]`)
+    socket.player.getController().setPrompt(data)
+  })
 }
 
 function notifyPlayer({ socket }) {

@@ -3,7 +3,10 @@ function defaultGameState() {
     state: 'STARTUP',
     players: [],
     timer: 60,
-    currentRound: 1
+    currentRound: 1,
+    currentDrawer: -1,
+    previousDrawers: [],
+    prompt: ''
   }
 }
 
