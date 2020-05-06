@@ -34,7 +34,8 @@ class Controller {
       id: player.getId(),
       username: player.connectionSettings.username,
       points: 0,
-      correct: false
+      correct: false,
+      locked: false
     }
 
     this.gameState.players.push(playerObj)
@@ -61,24 +62,48 @@ class Controller {
     }
   }
 
+  lockInPlayer(data) {
+    const { player } = data
+    this.selfSocket().emit('lockInPlayer', data)
+
+    const pIdx = this.gameState.players.findIndex((el) => el.id === player)
+    if (pIdx > -1) {
+      // Mark the player as locked
+      this.gameState.players[pIdx].locked = true
+    }
+  }
+
+  allPlayersLocked() {
+    for (const player of this.gameState.players) {
+      if (!player.locked) {
+        return false
+      }
+    }
+    return true
+  }
+
   startGame() {
-    const drawer = this.nextDrawer()
-    this.gameState.currentDrawer = drawer
+    // Make sure all the players are locked in
+    if (this.allPlayersLocked()) {
+      const drawer = this.nextDrawer()
+      this.gameState.currentDrawer = drawer
 
-    this.gameState.state = 'PLAYING'
-    this.selfSocket().emit('gameStarted', { drawer })
+      this.gameState.state = 'PLAYING'
+      this.selfSocket().emit('gameStarted', { drawer })
 
-    if (this.gameState.players && this.gameState.players.length > 0) {
-      for (const player of this.gameState.players) {
-        var playerSocket = this.io.sockets.connected[player.id]
-        if (player.id === drawer) {
-          // Start the drawer with random prompts
-          playerSocket.emit('gameStarted', {
-            drawer: true,
-            prompts: this.randomPrompts()
-          })
-        } else {
-          playerSocket.emit('gameStarted', { drawer: false })
+      if (this.gameState.players && this.gameState.players.length > 0) {
+        for (const player of this.gameState.players) {
+          console.log(player)
+          var playerSocket = this.io.sockets.connected[player.id]
+          if (player.id === drawer) {
+            // Start the drawer with random prompts
+            playerSocket.emit('gameStarted', {
+              drawer: true,
+              prompts: this.randomPrompts()
+            })
+          } else {
+            playerSocket.emit('gameStarted', { drawer: false })
+          }
         }
       }
     }
@@ -134,7 +159,7 @@ class Controller {
     for (const checkPlayer of this.gameState.players) {
       // Make sure we aren't checking the drawer for correctness
       if (
-        checkPlayer !== this.gameState.currentDrawer &&
+        checkPlayer.id !== this.gameState.currentDrawer &&
         !checkPlayer.correct
       ) {
         endRoundEarly = false
@@ -150,7 +175,9 @@ class Controller {
 
   setPrompt({ prompt }) {
     this.gameState.prompt = prompt
-    this.emitToEveryone('promptChosen', { prompt })
+    this.selfSocket().emit('promptChosen', { prompt })
+
+    // Start the round timer
     this.startTimer()
   }
 
@@ -245,10 +272,9 @@ class Controller {
         // No player options choose clear the previous players and return a random player
         return this.nextDrawer()
       } else {
-        const nextPlayer = playerOptions.splice(
-          Math.floor(Math.random() * playerOptions.length),
-          1
-        )
+        const nextPlayer =
+          playerOptions[Math.floor(Math.random() * playerOptions.length)]
+
         this.gameState.previousDrawers.push(nextPlayer)
         // Return a random player id
         return nextPlayer
@@ -259,20 +285,26 @@ class Controller {
   }
 
   // Returns 3 random prompts that haven't been used before
-  randomPrompts() {
-    const prompt1 = prompts.splice(
-      Math.floor(Math.random() * prompts.length),
-      1
-    )
-    const prompt2 = prompts.splice(
-      Math.floor(Math.random() * prompts.length),
-      1
-    )
-    const prompt3 = prompts.splice(
-      Math.floor(Math.random() * prompts.length),
-      1
-    )
-    return [prompt1, prompt2, prompt3]
+  randomPrompts(n = 3) {
+    // Construct a new array of the available options that we are pulling from
+    var options = []
+    for (const prompt of prompts) {
+      if (!this.gameState.previousPrompts.includes(prompt)) {
+        options.push(prompt)
+      }
+    }
+
+    var result = new Array(n),
+      len = options.length,
+      taken = new Array(len)
+    if (n > len)
+      throw new RangeError('getRandom: more elements taken than available')
+    while (n--) {
+      var x = Math.floor(Math.random() * len)
+      result[n] = options[x in taken ? taken[x] : x]
+      taken[x] = --len in taken ? taken[len] : len
+    }
+    return result
   }
 }
 

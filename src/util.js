@@ -6,6 +6,7 @@ function defaultGameState() {
     currentRound: 1,
     currentDrawer: -1,
     previousDrawers: [],
+    previousPrompts: [],
     prompt: ''
   }
 }

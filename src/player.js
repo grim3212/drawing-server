@@ -162,9 +162,17 @@ function setupListeners({ socket }) {
     socket.player.getController().newGuess(data)
   })
 
-  socket.on('promptChosen', (data) => {
+  socket.on('choosePrompt', (data) => {
     debug(`[${socket.id}]`, `Drawer chose prompt [${data.prompt}]`)
     socket.player.getController().setPrompt(data)
+  })
+
+  socket.on('lockIn', (data) => {
+    debug(`[${socket.id}]`, `Player locked in [${data}]`)
+    socket.player.getController().lockInPlayer({
+      ...data,
+      player: socket.player.getId()
+    })
   })
 }
 
