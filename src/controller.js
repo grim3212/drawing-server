@@ -50,6 +50,9 @@ function setupListeners({ io, socket }) {
       `Controller disconnected from room [${socket.controller.getRoom()}]`
     )
 
+    // Stop the timer since we no longer need to increment
+    socket.controller.stopTimer()
+
     var players = io.sockets.adapter.rooms[socket.controller.getRoom()]
 
     if (players) {
