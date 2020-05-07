@@ -67,13 +67,17 @@ class Controller {
   }
 
   lockInPlayer(data) {
-    const { player } = data
+    const { player, icon, color } = data
     this.selfSocket().emit('lockInPlayer', data)
 
     const pIdx = this.gameState.players.findIndex((el) => el.id === player)
     if (pIdx > -1) {
       // Mark the player as locked
       this.gameState.players[pIdx].locked = true
+
+      this.gameState.players[pIdx].icon = icon
+
+      this.gameState.players[pIdx].favoriteColor = color
     }
   }
 
@@ -118,6 +122,8 @@ class Controller {
   }
 
   newGuess({ player, text, time }) {
+    console.log(player)
+
     // Correct guess?
     const correct = this.gameState.prompt === text.toLowerCase()
 
@@ -132,18 +138,34 @@ class Controller {
 
     // Send the new guess to all players except the one who sent it
     if (this.gameState.players && this.gameState.players.length > 0) {
+      const playerObj = {
+        player,
+        time,
+        correct
+      }
+
+      // We don't want to send the correct text to each client they don't need it
+      if (!correct) {
+        playerObj.text = text
+      } else {
+        // If they were correct mark them as correct
+        this.markPlayerCorrect(player.id)
+      }
+
       for (const checkPlayer of this.gameState.players) {
-        if (checkPlayer.id !== player.id) {
-          var playerSocket = this.io.sockets.connected[checkPlayer.id]
-          playerSocket.emit('newGuess', newObj)
+        var playerSocket = this.io.sockets.connected[checkPlayer.id]
+
+        if (correct) {
+          if (checkPlayer.id === player.id) {
+            // Tell original sender that they were correct
+            playerSocket.emit('correctGuess', newObj)
+          } else {
+            playerSocket.emit('newGuess', playerObj)
+          }
+        } else {
+          playerSocket.emit('newGuess', playerObj)
         }
       }
-    }
-
-    if (correct) {
-      // Tell original sender that they were correct
-      this.io.sockets.connected[player.id].emit('correctGuess')
-      this.markPlayerCorrect(player.id)
     }
   }
 
