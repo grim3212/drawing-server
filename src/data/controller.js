@@ -62,6 +62,10 @@ class Controller {
     }
   }
 
+  clearCanvas() {
+    this.selfSocket().emit('clearCanvas')
+  }
+
   lockInPlayer(data) {
     const { player } = data
     this.selfSocket().emit('lockInPlayer', data)

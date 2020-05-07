@@ -167,12 +167,16 @@ function setupListeners({ socket }) {
     socket.player.getController().setPrompt(data)
   })
 
-  socket.on('lockIn', (data) => {
-    debug(`[${socket.id}]`, `Player locked in [${data}]`)
+  socket.on('lockIn', () => {
+    debug(`[${socket.id}]`, `Player locked in`)
     socket.player.getController().lockInPlayer({
-      ...data,
       player: socket.player.getId()
     })
+  })
+
+  socket.on('clearCanvas', () => {
+    debug(`[${socket.id}]`, `Player cleared canvas`)
+    socket.player.getController().clearCanvas()
   })
 }
 
