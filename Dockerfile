@@ -8,4 +8,4 @@ COPY package*.json ./
 RUN yarn
 COPY . .
 EXPOSE 5052
-RUN yarn run start-prod
+CMD ["yarn", "run", "start-prod"]
