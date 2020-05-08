@@ -43,10 +43,13 @@ class Controller {
   }
 
   playerLeft({ id }) {
-    const pIdx = this.gameState.players.findIndex((el) => el.id === id)
-    if (pIdx > -1) this.gameState.players.splice(pIdx, 1)
+    // This way the scoreboard stays up to date
+    if (this.gameState.state !== 'GAMEEND') {
+      const pIdx = this.gameState.players.findIndex((el) => el.id === id)
+      if (pIdx > -1) this.gameState.players.splice(pIdx, 1)
 
-    this.selfSocket().emit('playerLeft', { id })
+      this.selfSocket().emit('playerLeft', { id })
+    }
   }
 
   emitToEveryone(event, data) {
@@ -101,7 +104,6 @@ class Controller {
 
       if (this.gameState.players && this.gameState.players.length > 0) {
         for (const player of this.gameState.players) {
-          console.log(player)
           var playerSocket = this.io.sockets.connected[player.id]
           if (player.id === drawer) {
             // Start the drawer with random prompts
@@ -122,8 +124,6 @@ class Controller {
   }
 
   newGuess({ player, text, time }) {
-    console.log(player)
-
     // Correct guess?
     const correct = this.gameState.prompt === text.toLowerCase()
 
@@ -181,6 +181,10 @@ class Controller {
     // Update client controller state
     this.selfSocket().emit('updatePlayerState', newPlayer)
 
+    // Update the player that was correct with the updated points
+    var playerSocket = this.io.sockets.connected[playerId]
+    playerSocket.emit('updatePoints', { points: newPlayer.points })
+
     var endRoundEarly = true
     for (const checkPlayer of this.gameState.players) {
       // Make sure we aren't checking the drawer for correctness
@@ -230,7 +234,7 @@ class Controller {
         if (this.gameState.currentRound >= this.gameSettings.rounds) {
           this.stopTimer()
           this.gameState.state = 'GAMEEND'
-          this.emitToEveryone('gameEnd')
+          this.handleGameEnd()
         } else {
           this.gameState.state = 'PLAYING'
           this.gameState.timer = 60
@@ -270,6 +274,47 @@ class Controller {
         }
       }
     }
+  }
+
+  handleGameEnd() {
+    var sortedPlayers = [...this.gameState.players].sort((a, b) => {
+      if (a.points < b.points) {
+        return 1
+      }
+      if (a.points > b.points) {
+        return -1
+      }
+      return 0
+    })
+
+    for (var k = 0; k < sortedPlayers.length; k++) {
+      for (var h = 1; h < sortedPlayers.length + 1; h++) {
+        if (sortedPlayers[k + h] !== undefined && !sortedPlayers[k + h].tie) {
+          if (sortedPlayers[k].points === sortedPlayers[h + k].points) {
+            sortedPlayers[k].rank = k + 1
+            sortedPlayers[h + k].rank = k + 1
+            sortedPlayers[k].tie = true
+            sortedPlayers[h + k].tie = true
+          }
+        }
+      }
+    }
+
+    for (var [idx, player] of sortedPlayers.entries()) {
+      var playerSocket = this.io.sockets.connected[player.id]
+
+      if (player.rank === undefined) {
+        player.rank = idx + 1
+      }
+      // Notify each player of the rank and points if they need them
+      playerSocket.emit('gameEnd', {
+        rank: player.rank,
+        points: player.points,
+        tie: player.tie
+      })
+    }
+
+    this.selfSocket().emit('gameEnd', { sortedPlayers })
   }
 
   roundEnd() {
