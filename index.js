@@ -1,13 +1,20 @@
 const debug = require('debug')('drawing:base')
 const express = require('express')
+const cors = require('cors')
 const { setupPlayer } = require('./src/player')
 const { setupController } = require('./src/controller')
 
+const corsOptions = {
+  origin: 'https://drawing.grimoid.com',
+  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+}
+
 let app = express()
+app.use(cors(corsOptions))
 let server
 let io
 
-var is_production = process.env.NODE_ENV === 'production'
+const is_production = process.env.NODE_ENV === 'production'
 
 if (is_production) {
   server = require('http').createServer(app)
