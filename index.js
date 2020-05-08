@@ -1,6 +1,5 @@
 const debug = require('debug')('drawing:base')
 const express = require('express')
-const fs = require('fs')
 const { setupPlayer } = require('./src/player')
 const { setupController } = require('./src/controller')
 
@@ -11,17 +10,9 @@ let io
 var is_production = process.env.NODE_ENV === 'production'
 
 if (is_production) {
-  console.log('Using https')
-
-  var options = {
-    key: fs.readFileSync('/etc/letsencrypt/live/grim3212.com/privkey.pem'),
-    cert: fs.readFileSync('/etc/letsencrypt/live/grim3212.com/fullchain.pem'),
-    requestCert: false
-  }
-
-  server = require('https').createServer(options, app)
+  server = require('http').createServer(app)
   io = require('socket.io')(server, {
-    origins: ['trends.grim3212.com:443']
+    origins: ['drawing.grimoid.com:443']
   })
 } else {
   console.log('Using http')

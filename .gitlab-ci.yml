@@ -1,0 +1,43 @@
+image: docker:19.03.1
+
+services:
+  - docker:19.03.1-dind
+
+stages:
+  - build
+  - deploy
+
+step-build-image:
+  only:
+    - master
+  stage: build
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY/grim3212/drawing-server .
+    - docker push $CI_REGISTRY/grim3212/drawing-server
+
+step-deploy-image:
+  only:
+    - master
+  stage: deploy
+  script:
+    # add the server as a known host
+    - mkdir ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    # add the private key
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 700 ~/.ssh/id_rsa
+    # check for ssh-agent
+    - 'which ssh-agent || ( apk add openssh-client )'
+    # add ssh key stored in SSH_PRIVATE_KEY variable to the agent store
+    - eval $(ssh-agent -s)
+    - ssh-add ~/.ssh/id_rsa
+    # log into Docker registry
+    - ssh deployer@192.168.1.5 "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
+    # stop container, remove image.
+    - ssh deployer@192.168.1.5 "docker stop drawing-server" || true
+    - ssh deployer@192.168.1.5 "docker rm drawing-server" || true
+    - ssh deployer@192.168.1.5 "docker rmi $CI_REGISTRY/grim3212/drawing-server:latest" || true
+    # start new container
+    - ssh deployer@192.168.1.5 "docker run --name drawing-server -p 5052:5052 -d $CI_REGISTRY/grim3212/drawing-server"
