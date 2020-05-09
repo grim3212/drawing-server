@@ -20,7 +20,7 @@ function validatePlayer(opts) {
   if (!query.roomCode || query.roomCode.length < 4) {
     kickPlayer(socket, 'invalidRoomCode')
     return false
-  } else if (!query.username || query.username.length < 3) {
+  } else if (!query.username || query.username.length < 2) {
     kickPlayer(socket, 'invalidUsername')
     return false
   } else {
