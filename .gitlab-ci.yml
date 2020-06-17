@@ -40,4 +40,4 @@ step-deploy-image:
     - ssh deployer@192.168.1.5 "docker rm drawing-server" || true
     - ssh deployer@192.168.1.5 "docker rmi $CI_REGISTRY/grim3212/drawing-server:latest" || true
     # start new container
-    - ssh deployer@192.168.1.5 "docker run --name drawing-server --network drawing -p 5052:5052 -d $CI_REGISTRY/grim3212/drawing-server"
+    - ssh deployer@192.168.1.5 "docker run --name drawing-server --network drawing -p 5052:5052 -d $CI_REGISTRY/grim3212/drawing-server --restart=always"
